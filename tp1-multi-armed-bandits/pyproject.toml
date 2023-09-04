@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "reinforcement-learning-tp1"
+version = "0.1.0"
+description = ""
+authors = ["Pierre-Louis Guhur <pierre-louis.guhur@laposte.net>"]
+readme = "README.md"
+packages = []
+
+[tool.poetry.dependencies]
+python = "^3.11"
+jupyterlab = "^4.0.5"
+pytest = "^7.4.1"
+mypy = "^1.5.1"
+matplotlib = "^3.7.2"
+tqdm = "^4.66.1"
+numpy = "^1.25.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
