@@ -2,7 +2,19 @@ import numpy as np
 from algo.utils import get_MAB, Regret_i
 
 def upper_bound(T, mu_opti, K, MAB, k=1):
-
+    """
+        UCB algorithm.
+        Use upper bound to choose the best arm at each time.
+        Args:
+            T: number of patients
+            mu_opti: optimal mean
+            K: number of arms
+            MAB: list of arms
+            k: hyperparameter of the upper bound
+        Returns:
+            list_regret: list of regret
+            list_choice: list of vaccin choisen at each time
+    """
     list_patient =[[] for _ in range(K)]
     list_a = [10 for _ in range(K)]
     list_regret = []
