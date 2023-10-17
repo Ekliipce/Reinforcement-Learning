@@ -9,6 +9,8 @@ import pytest
 import numpy as np
 import gym
 from gym import spaces
+from copy import deepcopy as dp
+
 
 
 """
@@ -70,7 +72,12 @@ class MDP(gym.Env):
 
         return (transition[0], transition[1], transition[2], {"info":"It is an info"})
 
-            
+    def reset(self):
+        """
+        Réinitialise l'environnement à un état initial
+        """
+        self.state = 0
+        return self.state        
 
 
 # Tests pour l'exercice 1
@@ -86,7 +93,7 @@ def test_mdp():
     mdp.reset()
     ret = mdp.step(0)
     assert ret[0] in [0, 1, 2]
-    assert ret[1] in [0, 1]
+    assert ret[1] in [0, -1]
     assert ret[2] in [True, False]
     assert isinstance(ret[3], dict)
 
@@ -107,8 +114,8 @@ def test_mdp():
 
 def compute_value(array, state, action, mdp: MDP, gamma: float):
     reward = mdp.P[state][action][1]
-    previous_v = array[state]
-    return reward + gamma * previous_v
+    next_state = mdp.P[state][action][0]
+    return reward + gamma * array[next_state]
 
 def mdp_value_iteration(mdp: MDP, max_iter: int = 1000, gamma=1.0) -> np.ndarray:
     """
@@ -116,23 +123,23 @@ def mdp_value_iteration(mdp: MDP, max_iter: int = 1000, gamma=1.0) -> np.ndarray
     https://en.wikipedia.org/wiki/Markov_decision_process#Value_iteration
     """
     values = np.zeros(mdp.observation_space.n)
-    i = 0
-    
-    while (True):
+    #print(f"============> Values: {values}\n")
+    for i in range(max_iter):
         change = 0
+        
         for state in range(mdp.observation_space.n):
-            choices = []
-            for action in range(mdp.action_space.n):
-                choice_a = compute_value(values, state, action, mdp, gamma)
-                choices.append(choice_a)
+            choices = [compute_value(values, state, action, mdp, gamma) 
+                       for action in range(mdp.action_space.n)]
             new_value = max(choices)
+            
+            #print (f"============> New value: {new_value}\n")
+            
             if (new_value != values[state]):
-                values[state] == new_value
+                values[state] = new_value
                 change += 1
 
         if (change == 0 or i >= max_iter):
             break
-        i +=1
     return values
 
 
@@ -157,7 +164,6 @@ def test_mdp_value_iteration():
 # Puis, utilisez l'algorithme de value iteration pour calculer la fonction de
 # valeur de chaque état.
 
-
 class GridWorldEnv(gym.Env):
     metadata = {"render.modes": ["human"]}
     # F: Free, S: Start, P: Positive reward, N: negative reward, W: Wall
@@ -179,40 +185,49 @@ class GridWorldEnv(gym.Env):
 
         self.current_position = (0, 0)
 
-    def step(self, action):
+    def step(self, action, movable=False):
+        # if self.grid[tuple(self.current_position)] == "N":
+        #     return None, -1, True
+        # elif self.grid[tuple(self.current_position)] == "P":
+        #     return None, 1, True 
+
+
         if action == 0:  # Up
-            self.current_position = (
+            position = (
                 max(0, self.current_position[0] - 1),
                 self.current_position[1],
             )
         elif action == 1:  # Down
-            self.current_position = (
+            position = (
                 min(3, self.current_position[0] + 1),
                 self.current_position[1],
             )
         elif action == 2:  # Left
-            self.current_position = (
+            position = (
                 self.current_position[0],
                 max(0, self.current_position[1] - 1),
             )
         elif action == 3:  # Right
-            self.current_position = (
+            position = (
                 self.current_position[0],
                 min(3, self.current_position[1] + 1),
             )
 
-        next_state = tuple(self.current_position)
+        next_state = tuple(position)
 
         # Check if the agent has reached the goal
-        is_done = self.grid[tuple(self.current_position)] in {"P", "N"}
+        is_done = self.grid[tuple(position)] in {"P", "N"}
 
         # Provide reward
-        if self.grid[tuple(self.current_position)] == "N":
+        if self.grid[tuple(position)] == "N":
             reward = -1
-        elif self.grid[tuple(self.current_position)] == "P":
+        elif self.grid[tuple(position)] == "P":
             reward = 1
         else:
             reward = 0
+
+        if (movable):
+            self.current_position = position
 
         return next_state, reward, is_done, {}
 
@@ -229,6 +244,18 @@ class GridWorldEnv(gym.Env):
                     print(self.grid[row, col], end=" ")
             print("")  # Newline at the end of the row
 
+def compute_value_grid_world(array, state, action, mdp: GridWorldEnv, gamma: float):
+    mdp.current_position = state
+    step = mdp.step(action)
+
+    next_state = step[0]
+    reward = step[1]
+    
+    
+    if (reward == -1 or reward == 1):
+        return reward 
+
+    return reward + gamma * array[next_state]
 
 def grid_world_value_iteration(
     env: GridWorldEnv,
@@ -241,8 +268,43 @@ def grid_world_value_iteration(
     theta est le seuil de convergence (différence maximale entre deux itérations).
     """
     values = np.zeros((4, 4))
-    # BEGIN SOLUTION
-    # END SOLUTION
+    print(f"ENV = {env.observation_space[0].n}")
+    
+
+    for i in range(max_iter):
+        change = 0
+        print(f"===== ITER {i} ======")
+        current_values = dp(values)
+
+        for state_i in range(env.observation_space[0].n):
+            for state_j in range(env.observation_space[1].n):
+                if (env.grid[state_i, state_j] != "F" and env.grid[state_i, state_j] != "S"):
+                    continue
+
+                choices = [compute_value_grid_world(values, (state_i, state_j), action, env, gamma) 
+                       for action in range(env.action_space.n)]
+                
+                print(f"==============> for state {state_i}, {state_j}")
+                print(f'choices = {choices}\n')
+                previous_values = dp(current_values)   
+                current_values[state_i, state_j] = max(choices)
+                
+                # print(previous_values)
+                # print(current_values)
+                # print (np.abs(current_values[state_i, state_j] - previous_values[state_i, state_j]))
+                if (np.abs(current_values[state_i, state_j] - previous_values[state_i, state_j]) > theta):
+                    change += 1
+        
+        values = dp(current_values)
+        print(f"{change =}")
+        if (change == 0):
+            break
+
+    print(f"\n\nfinal values : \n{values}")
+    return values
+    
+
+
 
 
 def test_grid_world_value_iteration():
@@ -364,8 +426,12 @@ def fibonacci(n: int) -> int:
     """
     Calcule le n-ième terme de la suite de Fibonacci.
     """
-    # BEGIN SOLUTION
-    # END SOLUTION
+    if n == 0:
+        return 0
+    elif n == 1:
+        return 1
+    else:
+        return fibonacci(n-2) + fibonacci(n-1)
 
 
 # Tests pour l'exercice 1
@@ -392,14 +458,33 @@ def test_fibonacci(n, expected):
 # fois.
 # Indice: la fonction doit être récursive.
 
-
+memo = []
 def fibonacci_memo(n: int) -> int:
     """
     Calcule le n-ième terme de la suite de Fibonacci, en mémorisant les
     résultats intermédiaires.
     """
-    # BEGIN SOLUTION
-    # END SOLUTION
+    print(f"==============> n: {n}")
+    print(f"==============> memo: {memo}\n")
+    if n == 0:
+        if len(memo) == 0:
+            memo.append(0)
+        return 0
+    elif n == 1:
+        if len(memo) == 1:
+            memo.append(1)
+        return 1
+    else:
+        
+        if len(memo) == n:
+            f1 = memo[n-1]
+            f2 = memo[n-2]
+            memo.append(f1 + f2)
+        else:
+            f1 = fibonacci_memo(n-1)
+            f2 = fibonacci_memo(n-2)
+        return f1 + f2
+    
 
 
 # Tests pour l'exercice 2
@@ -438,8 +523,13 @@ def domino_paving(n: int) -> int:
     avec des dominos.
     """
     a = 0
-    # BEGIN SOLUTION
-    # END SOLUTION
+
+    if (n % 2 == 1):
+        return 0
+    elif (n <= 0):
+        return 1
+
+    return 4 * domino_paving(n-2) - domino_paving(n-4)
 
 
 # Tests pour l'exercice 3
