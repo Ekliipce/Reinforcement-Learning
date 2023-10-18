@@ -343,7 +343,7 @@ def test_grid_world_value_iteration():
 class StochasticGridWorldEnv(GridWorldEnv):
     def _add_noise(self, action: int) -> int:
         prob = random.uniform(0, 1)
-        if prob < 0.05:  # 10% chance to go left
+        if prob < 0.1:  # 10% chance to go left
             return (action - 1) % 4
         elif prob < 0.1:  # 10% chance to go right
             return (action + 1) % 4
@@ -354,6 +354,25 @@ class StochasticGridWorldEnv(GridWorldEnv):
         action = self._add_noise(action)
         return super().step(action)
 
+def compute_stochastic(array, state, action, mdp: StochasticGridWorldEnv, gamma: float):
+    mdp.current_position = state
+    actions = [(action - 1) % 4, (action + 1) % 4, action]
+    prob_action = [0.05, 0.05, 0.9]
+    
+    value = 0
+    for action, prob in zip(actions, prob_action):
+        step = mdp.step(action)
+        next_state = step[0]
+        reward = step[1]
+        
+        
+        if (mdp.grid[next_state[0], next_state[1]] == "W"):
+            next_state = state
+
+        value += prob * (reward + gamma * array[next_state])
+
+
+    return value 
 
 def stochastic_grid_world_value_iteration(
     env: StochasticGridWorldEnv,
@@ -362,8 +381,32 @@ def stochastic_grid_world_value_iteration(
     theta=1e-5,
 ) -> np.ndarray:
     values = np.zeros((4, 4))
-    # BEGIN SOLUTION
-    # END SOLUTION
+    delta = 0 
+
+    for i in range(max_iter):
+        current_values = dp(values)
+
+        for state_i in range(env.observation_space[0].n):
+            for state_j in range(env.observation_space[1].n):
+                if (env.grid[state_i, state_j] != "F" and env.grid[state_i, state_j] != "S"):
+                    continue
+
+                choices = [compute_stochastic(values, (state_i, state_j), action, env, gamma) 
+                       for action in range(env.action_space.n)]
+                
+                previous_values = dp(current_values)   
+                current_values[state_i, state_j] = max(choices)
+        
+                delta = max(delta, (np.abs(current_values[state_i, state_j] - previous_values[state_i, state_j])))
+        
+        
+        
+        values = dp(current_values)
+        if (delta < theta):
+            break
+
+
+    print(f"\n\nfinal values : \n{values}")
     return values
 
 
