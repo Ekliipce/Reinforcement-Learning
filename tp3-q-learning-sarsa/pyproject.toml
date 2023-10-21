@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "3"
+version = "0.1.0"
+description = ""
+authors = ["Pierre-Louis Guhur <pierre-louis.guhur@laposte.net>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+pygame = {version = "^2.5.2", allow-prereleases = true}
+jupyterlab = {version = "^4.1.0a2", allow-prereleases = true}
+numpy = {version = "^1.26.1", allow-prereleases = true}
+matplotlib = {version = "^3.8.0", allow-prereleases = true}
+gymnasium = {extras = ["classic-control", "toy-text"], version = "^0.29.1", allow-prereleases = true}
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.9.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
