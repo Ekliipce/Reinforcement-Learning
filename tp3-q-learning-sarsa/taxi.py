@@ -24,7 +24,7 @@ import numpy as np
 from qlearning import QLearningAgent
 from qlearning_eps_scheduling import QLearningAgentEpsScheduling
 from gym.wrappers.monitoring import video_recorder
-#from sarsa import SARSAAgent
+from sarsa import SarsaAgent
 
 
 env = gym.make("Taxi-v3", render_mode="rgb_array")
@@ -40,7 +40,12 @@ agent = QLearningAgent(
 )
 
 
-def play_and_train(env: gym.Env, agent: QLearningAgent, t_max=int(1e4), create_movie=False, filename=None) -> float:
+def play_and_train(env: gym.Env,
+                   agent: QLearningAgent,
+                   t_max=int(1e4),
+                   create_movie=False,
+                   filename=None,
+                   long_train=False) -> float:
     """
     This function should
     - run a full game, actions given by agent.getAction(s)
@@ -68,7 +73,8 @@ def play_and_train(env: gym.Env, agent: QLearningAgent, t_max=int(1e4), create_m
         s = next_s
 
         if (done):
-            break
+            s, _ = env.reset()
+            if (not long_train): break
 
     if (create_movie):
         vid.close()
@@ -83,6 +89,8 @@ rewards = []
 for i in range(1000):
     rewards.append(play_and_train(env, agent))
 
+    ## if you want to train more, test long_train parameter
+    ##rewards.append(play_and_train(env, agent, 700, long_train=True))
     if i % 100 == 0:
         print("mean reward", np.mean(rewards[-100:]))
 
@@ -108,6 +116,9 @@ agent = QLearningAgentEpsScheduling(
 rewards = []
 for i in range(1000):
     rewards.append(play_and_train(env, agent))
+
+    ## if you want to train more, test long_train parameter
+    ##rewards.append(play_and_train(env, agent, 700, long_train=True))
     if i % 100 == 0:
         print("mean reward", np.mean(rewards[-100:]))
 
@@ -116,23 +127,41 @@ assert np.mean(rewards[-100:]) > 0.0
 # TODO: créer des vidéos de l'agent en action
 play_and_train(env, agent, create_movie=True, filename="taxi_qlearning_epsscheduling.mp4")
 
-"""
+
 
 ####################
 # 3. Play with SARSA
 ####################
 
 
-agent = SARSAAgent(learning_rate=0.5, gamma=0.99, legal_actions=list(range(n_actions)))
+agent = SarsaAgent(learning_rate=0.2, epsilon=0.05, gamma=0.99, legal_actions=list(range(n_actions)))
+
+print ("================ SARSA ======================")
+
 
 rewards = []
 for i in range(1000):
-    rewards.append(play_and_train(env, agent))
+    rewards.append(play_and_train(env, agent, 700, long_train=True))
     if i % 100 == 0:
         print("mean reward", np.mean(rewards[-100:]))
 
         
+play_and_train(env, agent, create_movie=True, filename="taxi_sarsa.mp4")
 
 
+
+"""
+        Conclusion :
+            If we train with option long_train (reset when the game is finished)
+            and 700 steps * 1000 iters we obtain : 
+            
+            Q-Learning (lr=0.2, eps=0.1, gamma=0.99)
+                near 115 of rewards
+
+            Q-learning (lr=0.2, eps=0.15, gamma=0.99)
+                near 250 of rewards
+
+            SARSA (lr=0.2, eps=0.05, gamma=0.99)
+                near 180 of rewards
 
 """

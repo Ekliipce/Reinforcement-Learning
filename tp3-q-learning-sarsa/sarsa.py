@@ -15,6 +15,7 @@ class SarsaAgent:
     def __init__(
         self,
         learning_rate: float,
+        epsilon: float,
         gamma: float,
         legal_actions: t.List[Action],
     ):
@@ -26,6 +27,7 @@ class SarsaAgent:
         self.legal_actions = legal_actions
         self._qvalues: QValues = defaultdict(lambda: defaultdict(int))
         self.learning_rate = learning_rate
+        self.epsilon = epsilon
         self.gamma = gamma
 
     def get_qvalue(self, state: State, action: Action) -> float:
@@ -45,9 +47,8 @@ class SarsaAgent:
         Compute your agent's estimate of V(s) using current q-values
         V(s) = max_a Q(s, a) over possible actions.
         """
-        value = 0.0
-        # BEGIN SOLUTION
-        # END SOLUTION
+        qvalues = [self.get_qvalue(state, action) for action in self.legal_actions]
+        value = np.max(qvalues)
         return value
 
     def update(
@@ -55,13 +56,19 @@ class SarsaAgent:
     ):
         """
         You should do your Q-Value update here (s'=next_state):
-           TD_target(s') = R(s, a) + gamma * V(s')
+           TD_target(s') = R(s, a) + gamma * Q(s', a')
            TD_error(s', a) = TD_target(s') - Q(s, a)
            Q_new(s, a) := Q(s, a) + alpha * TD_error(s', a)
         """
-        q_value = 0.0
-        # BEGIN SOLUTION
-        # END SOLUTION
+        
+        old_q = self.get_qvalue(state, action)
+        next_action = self.get_action(state)
+        future_q = self.get_qvalue(next_state, next_action)
+       
+
+        temporal_difference_target = reward + self.gamma * future_q
+        temporal_difference_error = temporal_difference_target - old_q
+        q_value = old_q + self.learning_rate * temporal_difference_error
 
         self.set_qvalue(state, action, q_value)
 
@@ -80,9 +87,12 @@ class SarsaAgent:
         """
         Compute the action to take in the current state, including exploration.
         """
-        action = self.legal_actions[0]
+       
+        p = np.random.uniform(0, 1)
 
-        # BEGIN SOLUTION
-        # END SOLUTION
+        if (p <= self.epsilon): #Exploration
+            action = random.choice(self.legal_actions)
+        else : #Exploitation
+            action = self.get_best_action(state)
 
         return action
