@@ -67,11 +67,21 @@ def play_and_train(env, agent, iter):
 
 
 print("========================== DQN ==========================")
-agent = DQLearningAgent(0.01, 0.1, 0.99, 32, np.arange(env.action_space.n))
+agent = DQLearningAgent(
+    learning_rate=0.001,
+    epsilon_start=1,
+    epsilon_end=0.1,
+    epsilon_decay_duration=1000000,
+    gamma=0.99,
+    batch_size=32,
+    legal_actions=np.arange(env.action_space.n),
+    max_memory_size=10000,
+    network_update_frequency=10000)
+
 step_per_episode = 500
 final_reward = 0
 
-for i in range(1000):
+for i in range(100):
     print(f"Step: {i}")
     reward, loss = play_and_train(env, agent, step_per_episode)
 
