@@ -1,6 +1,6 @@
 import gymnasium
 import numpy as np
-# Visualiser l'état initial
+import torch
 import matplotlib.pyplot as plt
 
 from preprocess import Preprocess
@@ -41,42 +41,50 @@ env = Preprocess(env)
 def play_and_train(env, agent, iter):
     state = env.reset()
     total_reward = 0.0
+    total_loss = 0.0
 
     for i in range(iter):
-        print("step: {}".format(i))
-        print(state.shape)
         # 1. Choose an action
         action = agent.get_action(state)
 
-        print("action chosed")
-
         # 2. Perform the action and observe environment
         next_state, reward, done, _, = env.step(action)
-        print("action done")
+        
         # Update the memory
         agent.update_memory(state, action, reward, next_state, done)
 
-        print("memory updated")
         #3. Train the agent based on the observed environment 
-        agent.train()
-        print("agent trained")  
+        loss = agent.train()
 
         total_reward += reward
+        total_loss += 0 if loss is None else loss 
         state = env.reset() if done else next_state
     
-    return total_reward
+    mean_loss = total_loss / iter
+    return total_reward, mean_loss
 
 
 
 
 print("========================== DQN ==========================")
 agent = DQLearningAgent(0.01, 0.1, 0.99, 32, np.arange(env.action_space.n))
-
+step_per_episode = 500
 final_reward = 0
-for i in range(100):
-    play_and_train(env, agent, 200)
-    
 
-    # if (i%100 == 0):
-    #     print("Step: {} Reward: {}".format(i, final_reward))
+for i in range(1000):
+    print(f"Step: {i}")
+    reward, loss = play_and_train(env, agent, step_per_episode)
+
+    final_reward += reward
+    print(f"Loss: {loss} Reward: {reward}")
+
+    if (i%10 == 0):
+        torch.save(agent.model.state_dict(), "simple_dqn.pt")
+        print("Step: {} Reward: {}".format(i, final_reward))
+         
+
+
+
+
+    
     

@@ -60,17 +60,15 @@ class DQLearningAgent:
         self.model = DQNModel((84, 84), len(legal_actions)).to(device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         self.loss_fn = torch.nn.MSELoss()
-        # self.target_model = self._build_model()
-        # self.update_target_model()
 
     def train(self):
+        self.model.train()
         if len(self.memory_play) <= self.batch_size:
             return None
         
         states, actions, rewards, next_states, dones = self.sample_experiences(self.batch_size)
         
         # Compute Q(s_t, a)
-
         q_values_next = self.model(next_states)
         max_q_values_next, _ = q_values_next.max(dim=1)
         target_q_values = rewards + (1 - dones) * self.gamma * max_q_values_next
@@ -86,29 +84,23 @@ class DQLearningAgent:
         loss.backward()
         self.optimizer.step()
         
-        print(f"loss: {loss.item():>7f}")
+        return loss.item()
 
     def sample_experiences(self, batch_size):
-        print('sample_experiences')
         index = np.random.choice(len(self.memory_play), batch_size, replace=False)
         batch = [self.memory_play[i] for i in index]
         states, actions, rewards, next_states, dones = zip(*batch)
-        print(f"methode 1 : {zip(*batch)}")
-        print(next_states.shape)
-        return states, actions, rewards, next_states, dones
 
-    # def create_stack(self, pos=0):
-    #     # Check if the indices are valid
-    #     if pos >= len(self.memory_play):
-    #         raise ValueError("Invalid position")
+        #Create Batch (32, 4, 84, 84)
+        states = torch.cat(states, dim=0)
+        next_states = torch.cat(next_states, dim=0)
 
-    #     s1 = self.memory_play[pos-4][0].unsqueeze(0).unsqueeze(0).float().to(device)
-    #     s2 = self.memory_play[pos-3][0].unsqueeze(0).unsqueeze(0).float().to(device)
-    #     s3 = self.memory_play[pos-2][0].unsqueeze(0).unsqueeze(0).float().to(device)
-    #     s4 = self.memory_play[pos-1][0].unsqueeze(0).unsqueeze(0).float().to(device)
+        #Tuple to Tensor
+        actions = torch.tensor(actions, dtype=torch.int64).to(device)
+        rewards = torch.tensor(rewards, dtype=torch.float32).to(device)
+        dones = torch.tensor(dones, dtype=torch.float32).to(device)
 
-    #     stacked_image = torch.cat((s1, s2, s3, s4), dim=1)
-    #     return stacked_image
+        return states, actions, rewards,next_states, dones
 
     def convert_tottensor(self, state):
         state_tensor = torch.tensor(state, dtype=torch.float32).to(device) 
