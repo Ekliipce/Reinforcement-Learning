@@ -111,6 +111,12 @@ class DQLearningAgent:
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+
+        # Free memory
+        del states, actions, rewards, next_states, dones
+        del q_values_next, max_q_values_next, target_q_values
+        del predicted_q_values, q_values, td_errors, clipped_td_errors
+        torch.cuda.empty_cache()
         
         return loss.item()
 
@@ -129,6 +135,7 @@ class DQLearningAgent:
         actions = torch.tensor(actions, dtype=torch.int64).to(device)
         rewards = torch.tensor(rewards, dtype=torch.float32).to(device)
         dones = torch.tensor(dones, dtype=torch.float32).to(device)
+
 
         return states, actions, rewards,next_states, dones
 

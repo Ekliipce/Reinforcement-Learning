@@ -38,7 +38,7 @@ env = Preprocess(env)
 
 
 
-def play_and_train(env, agent, iter):
+def play_and_train(env, agent, iter, trainable=False):
     state = env.reset()
     total_reward = 0.0
     total_loss = 0.0
@@ -54,10 +54,11 @@ def play_and_train(env, agent, iter):
         agent.update_memory(state, action, reward, next_state, done)
 
         #3. Train the agent based on the observed environment 
-        loss = agent.train()
+        if (trainable):
+            loss = agent.train()
+            total_loss += 0 if loss is None else loss 
 
         total_reward += reward
-        total_loss += 0 if loss is None else loss 
         state = env.reset() if done else next_state
     
     mean_loss = total_loss / iter
@@ -71,24 +72,27 @@ agent = DQLearningAgent(
     learning_rate=0.001,
     epsilon_start=1,
     epsilon_end=0.1,
-    epsilon_decay_duration=1000000,
+    epsilon_decay_duration=20000,
     gamma=0.99,
-    batch_size=32,
+    batch_size=16,
     legal_actions=np.arange(env.action_space.n),
-    max_memory_size=10000,
-    network_update_frequency=10000)
+    max_memory_size=2000,
+    network_update_frequency=1000)
 
-step_per_episode = 500
+step_per_episode = 1000
 final_reward = 0
 
-for i in range(100):
+for i in range(10):
     print(f"Step: {i}")
-    reward, loss = play_and_train(env, agent, step_per_episode)
+    if i < 2:
+        reward, loss = play_and_train(env, agent, step_per_episode)
+    else:
+        reward, loss = play_and_train(env, agent, step_per_episode, trainable=True)
 
     final_reward += reward
-    print(f"Loss: {loss} Reward: {reward}")
+    print(f"Loss: {loss} Reward: {reward}, EPS: {agent.epsilon}")
 
-    if (i%10 == 0):
+    if (i%20 == 0):
         torch.save(agent.model.state_dict(), "simple_dqn.pt")
         print("Step: {} Reward: {}".format(i, final_reward))
          
